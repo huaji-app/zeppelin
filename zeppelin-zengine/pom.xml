@@ -277,6 +277,14 @@
       <version>1.5</version>
     </dependency>
 
+    <!-- for sending emails -->
+    <dependency>
+      <groupId>org.simplejavamail</groupId>
+      <artifactId>simple-java-mail</artifactId>
+      <version>7.1.0</version>
+    </dependency>
+
+
   </dependencies>
 
   <build>

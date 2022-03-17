@@ -140,6 +140,7 @@ public class QuartzSchedulerService implements SchedulerService {
 
     JobDataMap jobDataMap = new JobDataMap();
     jobDataMap.put("note", note);
+    jobDataMap.put("zeppelinConfiguration", zeppelinConfiguration);
     JobDetail newJob =
         JobBuilder.newJob(CronJob.class)
             .withIdentity(noteId, "note")

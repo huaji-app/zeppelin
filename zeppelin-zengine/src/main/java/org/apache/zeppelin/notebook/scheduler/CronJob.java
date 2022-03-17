@@ -31,9 +31,9 @@ import java.util.HashMap;
 public class CronJob implements org.quartz.Job {
   private static final Logger LOGGER = LoggerFactory.getLogger(CronJob.class);
 
-  private static final String RESULT_SUCCEEDED = "succeeded";
-  private static final String RESULT_FAILED = "failed";
-  private static final String RESULT_SKIPPED = "skipped";
+  public static final String RESULT_SUCCEEDED = "succeeded";
+  public static final String RESULT_FAILED = "failed";
+  public static final String RESULT_SKIPPED = "skipped";
 
   @Override
   public void execute(JobExecutionContext context) {

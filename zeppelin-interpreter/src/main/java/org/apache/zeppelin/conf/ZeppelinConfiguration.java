@@ -1081,7 +1081,18 @@ public class ZeppelinConfiguration {
     ZEPPELIN_JOBMANAGER_ENABLE("zeppelin.jobmanager.enable", false),
     ZEPPELIN_SPARK_ONLY_YARN_CLUSTER("zeppelin.spark.only_yarn_cluster", false),
     ZEPPELIN_SESSION_CHECK_INTERVAL("zeppelin.session.check_interval", 60 * 10 * 1000),
-    ZEPPELIN_NOTE_FILE_EXCLUDE_FIELDS("zeppelin.note.file.exclude.fields", "");
+    ZEPPELIN_NOTE_FILE_EXCLUDE_FIELDS("zeppelin.note.file.exclude.fields", ""),
+    ZEPPELIN_SERVER_NAME("zeppelin.server.name", "Zeppelin Server"),
+    ZEPPELIN_SERVER_URL("zeppelin.server.url", "http://localhost/"),
+    ZEPPELIN_EMAIL_ENABLE("zeppelin.email.enable",  false),
+    ZEPPELIN_EMAIL_SMTP_ADDRESS("zeppelin.email.smtp.address", ""),
+    ZEPPELIN_EMAIL_SMTP_PORT("zeppelin.email.smtp.port", 465),
+    ZEPPELIN_EMAIL_SMTP_USER_NAME("zeppelin.email.smtp.user.name", ""),
+    ZEPPELIN_EMAIL_SMTP_PASSWORD("zeppelin.email.smtp.password", ""),
+    ZEPPELIN_EMAIL_FROM("zeppelin.email.from", ""),
+    ZEPPELIN_EMAIL_DISPLAY_NAME("zeppelin.email.display.name", ""),
+    ZEPPELIN_EMAIL_REPLY_TO("zeppelin.email.reply.to", ""),
+    ZEPPELIN_EMAIL_RECIPIENTS("zeppelin.email.recipients", "");
 
     private String varName;
     private Class<?> varClass;

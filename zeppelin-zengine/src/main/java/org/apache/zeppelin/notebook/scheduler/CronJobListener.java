@@ -14,6 +14,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.conf.ZeppelinConfiguration.ConfVars;
 import org.apache.zeppelin.notebook.Note;
+import org.apache.zeppelin.notebook.Paragraph;
+import org.apache.zeppelin.scheduler.Job.Status;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -62,10 +64,10 @@ public class CronJobListener implements JobListener {
     String result = StringUtils.defaultString(context.getResult().toString(), "unknown");
     LOGGER.info("cron job of noteId {} executed with result {}", note.getId(), result);
     Timer.Sample sample = cronJobTimerSamples.remove(context);
-    if (!result.equals(CronJob.RESULT_SUCCEEDED)) {
-        sendEmailNotificationWhenFail(zeppelinConfiguration, note, result);
-      }
-      if (sample != null) {
+
+    sendEmailNotificationIfError(zeppelinConfiguration, note, result);
+
+    if (sample != null) {
       Tag noteId = Tag.of("nodeid", note.getId());
       Tag name = Tag.of("name", StringUtils.defaultString(note.getName(), "unknown"));
       Tag statusTag = Tag.of("result", result);
@@ -75,10 +77,41 @@ public class CronJobListener implements JobListener {
     }
   }
 
-  private void sendEmailNotificationWhenFail(ZeppelinConfiguration conf, Note note, String jobResult) {
+  /**
+   * <pre>
+   * When email is enabled, the following condition will trigger email notification:
+   * 1. job result != RESULT_SUCCEEDED
+   * 2. any paragraph's status = ERROR
+   * </pre>
+   */
+  private void sendEmailNotificationIfError(ZeppelinConfiguration conf, Note note, String jobResult) {
     if (!conf.getBoolean(ConfVars.ZEPPELIN_EMAIL_ENABLE)) {
       return;
     }
+
+    StringBuilder errorMessageBuilder = new StringBuilder();
+    for (Paragraph paragraph : note.getParagraphs()) {
+      if (paragraph.getStatus().equals(Status.ERROR)) {
+        StringBuilder errorMessage = new StringBuilder();
+        if (paragraph.getException() != null) {
+          errorMessage.append(paragraph.getException()).append("; ");
+        }
+        if (paragraph.getErrorMessage() != null) {
+          errorMessage.append(paragraph.getErrorMessage()).append("; ");
+        }
+        if (paragraph.getReturn() != null) {
+          errorMessage.append(paragraph.getReturn()).append("; ");
+        }
+        errorMessageBuilder.append(String.format("Paragraph %s: %s",
+            paragraph.getId(), errorMessage));
+        errorMessageBuilder.append('\n');
+      }
+    }
+
+    if (errorMessageBuilder.length() == 0 && jobResult.equals(CronJob.RESULT_SUCCEEDED)) {
+      return;
+    }
+
     Mailer mailer = MailerBuilder
         .withSMTPServer(conf.getString(ConfVars.ZEPPELIN_EMAIL_SMTP_ADDRESS),
             conf.getInt(ConfVars.ZEPPELIN_EMAIL_SMTP_PORT),
@@ -97,15 +130,20 @@ public class CronJobListener implements JobListener {
     }
 
     String serverName = conf.getString(ConfVars.ZEPPELIN_SERVER_NAME);
-    String textContent = String.format("Server: %s"
-            + "Note: %s"
-            + "Date: %s"
-            + "Link: %s",
+    String subject = String.format("%s - Note %s has error", serverName, note.getName());
+    String textContent = String.format("Server: %s\n"
+            + "Note: %s\n"
+            + "Job status: %s\n"
+            + "Date: %s\n"
+            + "Link: %s\n"
+            + "---\nParagraph errors:\n%s\n",
         serverName,
         note.getName(),
+        jobResult,
         new Date(),
-        conf.getString(ConfVars.ZEPPELIN_SERVER_URL) + "#/notebook/" + note.getId()
-        );
+        conf.getString(ConfVars.ZEPPELIN_SERVER_URL) + "#/notebook/" + note.getId(),
+        errorMessageBuilder
+    );
 
     Email email = EmailBuilder.startingBlank()
         .from(
@@ -114,9 +152,10 @@ public class CronJobListener implements JobListener {
         )
         .withReplyTo(conf.getString(ConfVars.ZEPPELIN_EMAIL_REPLY_TO))
         .to(recipients)
-        .withSubject(String.format("%s - Job Result = %s for %s", serverName, jobResult, note.getName()))
+        .withSubject(subject)
         .withPlainText(textContent)
         .buildEmail();
+    LOGGER.info("Sending email to {}, subject: {}, content: {}", recipients, subject, textContent);
     mailer.sendMail(email);
   }
 }
